@@ -35,17 +35,19 @@ class ApiHandler(APIHandler):
         all_processes = [cur_process] + cur_process.children(recursive=True)
 
         # Get memory information
-        rss = 0
+        # rss = psutil.virtual_memory().used + psutil.virtual_memory().active # 0
+        rss = psutil.virtual_memory().used
         pss = None
-        for p in all_processes:
-            try:
-                info = p.memory_full_info()
-                if hasattr(info, "pss"):
-                    pss = (pss or 0) + info.pss
-                rss += info.rss
-            except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-                pass
+        # for p in all_processes:
+        #     try:
+        #         info = p.memory_full_info()
+        #         if hasattr(info, "pss"):
+        #             pss = (pss or 0) + info.pss
+        #         rss += info.rss
+        #     except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+        #         pass
 
+        
         if callable(config.mem_limit):
             mem_limit = config.mem_limit(rss=rss, pss=pss)
         else:  # mem_limit is an Int
@@ -63,7 +65,7 @@ class ApiHandler(APIHandler):
 
         # Optionally get CPU information
         if config.track_cpu_percent:
-            cpu_count = psutil.cpu_count()
+            cpu_count = 1 # psutil.cpu_count()
             cpu_percent = await self._get_cpu_percent(all_processes)
 
             if config.cpu_limit != 0:
@@ -79,15 +81,16 @@ class ApiHandler(APIHandler):
 
     @run_on_executor
     def _get_cpu_percent(self, all_processes):
-        def get_cpu_percent(p):
-            try:
-                return p.cpu_percent(interval=0.05)
-            # Avoid littering logs with stack traces complaining
-            # about dead processes having no CPU usage
-            except:
-                return 0
+        # def get_cpu_percent(p):
+        #     try:
+        #         return p.cpu_percent(interval=0.05)
+        #     # Avoid littering logs with stack traces complaining
+        #     # about dead processes having no CPU usage
+        #     except:
+        #         return 0
 
-        return sum([get_cpu_percent(p) for p in all_processes])
+        # return sum([get_cpu_percent(p) for p in all_processes])
+        return psutil.cpu_percent(1)
 
 
 class KernelUsageHandler(APIHandler):
